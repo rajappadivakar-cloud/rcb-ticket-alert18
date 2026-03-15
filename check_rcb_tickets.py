@@ -1,7 +1,7 @@
 import requests
 
-BOT_TOKEN = "8733942574:AAGCTXoOhlusyvbeniirObtOw71UufY5h-g"
-CHAT_ID = "897782067"
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = os.getenv("CHAT_ID")
 
 URL = "https://shop.royalchallengers.com/tickets"
 
