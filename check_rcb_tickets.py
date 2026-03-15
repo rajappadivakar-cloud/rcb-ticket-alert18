@@ -6,13 +6,12 @@ from bs4 import BeautifulSoup
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 
-rcb_tickets_page_url = "https://shop.royalchallengers.com/ticket"
-
-# Dates you want to monitor
-tickets_dates = ["2026-03-28", "2026-04-05"]
+API_URL = "https://rcbmpapi.ticketgenie.in/ticket/eventlist/o"
+RCB_TICKETS_PAGE = "https://shop.royalchallengers.com/ticket"
 
 
 def send_telegram(message):
+
     telegram_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
 
     payload = {
@@ -23,53 +22,77 @@ def send_telegram(message):
     requests.post(telegram_url, data=payload)
 
 
-def get_dates_of_available_tickets(bs):
+def check_api():
 
-    dates = []
+    try:
 
-    for p in bs.find_all("p", {"class": "css-1nm99ps"}):
-        dates.append(p.text)
+        response = requests.get(API_URL, timeout=10)
+        data = response.json()
 
-    return dates
+        events = data.get("result", [])
+
+        if len(events) > 0:
+
+            print("API detected ticket events!")
+
+            send_telegram(
+                "🚨 RCB TICKETS MAY BE LIVE!\n\n"
+                "Check immediately:\n"
+                "https://shop.royalchallengers.com"
+            )
+
+            return True
+
+        print("API shows no events")
+
+        return False
+
+    except Exception as e:
+        print("API check failed:", e)
+        return False
+
+
+def check_website():
+
+    try:
+
+        headers = {"User-Agent": "Mozilla/5.0"}
+
+        response = requests.get(RCB_TICKETS_PAGE, headers=headers)
+
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        ticket_elements = soup.find_all("p", {"class": "css-1nm99ps"})
+
+        if len(ticket_elements) > 0:
+
+            print("Website detected tickets!")
+
+            send_telegram(
+                "🚨 RCB TICKETS MAY BE LIVE!\n\n"
+                "Check immediately:\n"
+                "https://shop.royalchallengers.com/ticket"
+            )
+
+            return True
+
+        print("Website shows no tickets")
+
+        return False
+
+    except Exception as e:
+        print("Website check failed:", e)
+        return False
 
 
 def check_tickets():
 
-    headers = {
-        "User-Agent": "Mozilla/5.0"
-    }
+    print("Checking at:", datetime.now())
 
-    response = requests.get(rcb_tickets_page_url, headers=headers)
+    api_result = check_api()
 
-    soup = BeautifulSoup(response.text, "html.parser")
-
-    available_tickets_dates = get_dates_of_available_tickets(soup)
-
-    print("Checked at:", datetime.now())
-
-    for available_ticket_date in available_tickets_dates:
-
-        date_obj = datetime.strptime(
-            available_ticket_date,
-            "%A, %b %d, %Y %I:%M %p"
-        )
-
-        formatted_date = date_obj.strftime("%Y-%m-%d")
-
-        if formatted_date in tickets_dates:
-
-            send_telegram(
-                f"🚨 RCB TICKETS AVAILABLE!\n\n"
-                f"Match Date: {formatted_date}\n"
-                f"Book now:\n"
-                f"{rcb_tickets_page_url}"
-            )
-
-            print("Tickets detected!")
-
-            return
-
-    print("Tickets not available yet")
+    if not api_result:
+        check_website()
 
 
 if __name__ == "__main__":
