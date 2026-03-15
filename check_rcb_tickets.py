@@ -1,22 +1,10 @@
 import os
 import requests
 
-# Read secrets from GitHub
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 
-# RCB shop URL
 URL = "https://shop.royalchallengers.com"
-
-# Words that may appear when tickets go live
-KEYWORDS = [
-    "ticket",
-    "match ticket",
-    "buy ticket",
-    "book ticket",
-    "stadium ticket"
-]
-
 
 def send_telegram(message):
     telegram_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
@@ -36,19 +24,26 @@ def check_tickets():
     }
 
     response = requests.get(URL, headers=headers)
-    page_text = response.text.lower()
+    page = response.text.lower()
 
-    for keyword in KEYWORDS:
-        if keyword in page_text:
-            send_telegram(
-                "🚨 RCB MATCH TICKETS MAY BE LIVE!\n\n"
-                "Check immediately:\n"
-                "https://shop.royalchallengers.com"
-            )
-            print("Ticket keyword detected!")
-            return
+    # Detect navigation tab
+    ticket_tab = ">tickets<" in page
 
-    print("No ticket keywords found.")
+    # Detect buy button
+    buy_button = "buy tickets" in page
+
+    if ticket_tab or buy_button:
+
+        send_telegram(
+            "🚨 RCB MATCH TICKETS ARE LIVE!\n\n"
+            "Go immediately:\n"
+            "https://shop.royalchallengers.com"
+        )
+
+        print("Ticket tab or buy button detected!")
+
+    else:
+        print("Tickets not live yet.")
 
 
 if __name__ == "__main__":
