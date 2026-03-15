@@ -2,7 +2,7 @@ name: RCB Ticket Checker
 
 on:
   schedule:
-    - cron: "*/1 * * * *"   # runs every minute
+    - cron: "*/5 * * * *"   # runs every minute
   workflow_dispatch:
 
 jobs:
