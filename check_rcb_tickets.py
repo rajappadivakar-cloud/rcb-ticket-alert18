@@ -1,29 +1,54 @@
 import os
 import requests
 
+# Read secrets from GitHub
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 
-URL = "https://shop.royalchallengers.com/tickets"
+# RCB shop URL
+URL = "https://shop.royalchallengers.com"
+
+# Words that may appear when tickets go live
+KEYWORDS = [
+    "ticket",
+    "match ticket",
+    "buy ticket",
+    "book ticket",
+    "stadium ticket"
+]
 
 
-def send_telegram(msg):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    data = {
+def send_telegram(message):
+    telegram_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+
+    payload = {
         "chat_id": CHAT_ID,
-        "text": msg
+        "text": message
     }
-    requests.post(url, data=data)
+
+    requests.post(telegram_url, data=payload)
 
 
 def check_tickets():
-    r = requests.get(URL)
 
-    if "sold out" not in r.text.lower():
-        send_telegram("🚨 RCB Tickets Might Be Live! Check Now!\nhttps://shop.royalchallengers.com/tickets")
-        print("Notification sent!")
-    else:
-        print("Tickets not available yet")
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+
+    response = requests.get(URL, headers=headers)
+    page_text = response.text.lower()
+
+    for keyword in KEYWORDS:
+        if keyword in page_text:
+            send_telegram(
+                "🚨 RCB MATCH TICKETS MAY BE LIVE!\n\n"
+                "Check immediately:\n"
+                "https://shop.royalchallengers.com"
+            )
+            print("Ticket keyword detected!")
+            return
+
+    print("No ticket keywords found.")
 
 
 if __name__ == "__main__":
